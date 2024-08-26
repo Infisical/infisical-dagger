@@ -2,12 +2,8 @@
 name = "main"
 version = "0.0.1"
 dependencies = [
-				"infisicalsdk"
+				"infisicalsdk >=0.2.0"
 ]
 venvPath = "."
 venv = ".venv"
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
 
