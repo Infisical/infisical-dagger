@@ -1,9 +1,5 @@
 [project]
 name = "main"
 version = "0.0.1"
-dependencies = [
-				"infisicalsdk >=0.2.0"
-]
-venvPath = "."
-venv = ".venv"
+dependencies = ["infisicalsdk >=0.2.0"]
 
