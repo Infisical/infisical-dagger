@@ -11,7 +11,7 @@ from infisical_sdk import InfisicalSDKClient
 
 
 @object_type
-class InfisicalDagger:
+class Infisical:
     infisical_client: InfisicalSDKClient = dataclasses.field(init=False)
     api_url: Annotated[
         dataclasses.InitVar[str],
