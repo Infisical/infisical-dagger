@@ -36,7 +36,7 @@ class Infisical:
         return self
 
     @function
-    async def get_secret_by_name(
+    def get_secret_by_name(
         self,
         secret_name: Annotated[str, Doc("The name of the secret to get.")],
         project_id: Annotated[
