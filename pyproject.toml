@@ -3,3 +3,6 @@ name = "main"
 version = "0.0.1"
 dependencies = ["infisicalsdk >=0.2.0"]
 
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

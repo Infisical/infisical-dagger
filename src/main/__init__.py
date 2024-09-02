@@ -4,14 +4,10 @@ Fetch and work with secrets for your dagger application using Infisical.
 """
 
 import dataclasses
-from typing import Annotated, List, Self
+from typing import Annotated, Self
 
-from dagger import Doc, function, object_type
+from dagger import Doc, dag, function, object_type, Secret
 from infisical_sdk import InfisicalSDKClient
-from infisical_sdk.client import (
-    ApiV3SecretsRawGet200Response,
-    ApiV3SecretsRawSecretNameGet200Response,
-)
 
 
 @object_type
@@ -26,17 +22,21 @@ class InfisicalDagger:
         self.infisical_client = InfisicalSDKClient(host=api_url)
 
     @function
-    def with_universal_auth(
+    async def with_universal_auth(
         self,
-        client_id: Annotated[str, Doc("Your Machine Identity Client ID")],
-        client_secret: Annotated[str, Doc("Your Machine Identity Client Secret.")],
+        client_id: Annotated[Secret, Doc("Your Machine Identity Client ID")],
+        client_secret: Annotated[Secret, Doc("Your Machine Identity Client Secret.")],
     ) -> Self:
         """Authenticate with Universal Auth"""
-        self.infisical_client.auth.universal_auth.login(client_id, client_secret)
+        client_id_dagger_secret = await client_id.plaintext()
+        client_secret_dagger_secret = await client_secret.plaintext()
+        self.infisical_client.auth.universal_auth.login(
+            client_id_dagger_secret, client_secret_dagger_secret
+        )
         return self
 
     @function
-    def get_secret_by_name(
+    async def get_secret_by_name(
         self,
         secret_name: Annotated[str, Doc("The name of the secret to get.")],
         project_id: Annotated[
@@ -52,7 +52,7 @@ class InfisicalDagger:
         include_imports: Annotated[
             bool, Doc("Weather to include imported secrets or not.")
         ] = True,
-    ) -> ApiV3SecretsRawSecretNameGet200Response:
+    ) -> Secret:
         """Get a secret by name"""
         secret = self.infisical_client.secrets.get_secret_by_name(
             secret_name=secret_name,
@@ -62,7 +62,7 @@ class InfisicalDagger:
             expand_secret_references=expand_secret_references,
             include_imports=include_imports,
         )
-        return secret
+        return dag.set_secret(secret_name, secret.secret.secret_value)
 
     @function
     def get_secrets(
@@ -86,10 +86,8 @@ class InfisicalDagger:
         include_imports: Annotated[
             bool, Doc("Weather to include imported secrets or not.")
         ] = True,
-        tag_filters: Annotated[
-            List[str], Doc("The comma separated tag slugs to filter secrets")
-        ] = [],
-    ) -> ApiV3SecretsRawGet200Response:
+        tag_filters: list[str] = [],
+    ) -> list[Secret]:
         """List secrets"""
         secrets = self.infisical_client.secrets.list_secrets(
             project_id=project_id,
@@ -100,4 +98,16 @@ class InfisicalDagger:
             recursive=recursive,
             tag_filters=tag_filters,
         )
-        return secrets
+        computed_secrets: dict[str, str] = {}
+        for secret in secrets.secrets:
+            computed_secrets[secret.secret_key] = secret.secret_value
+        for imported_secrets in reversed(secrets.imports):
+            for secret in imported_secrets:
+                if computed_secrets[secret.secret_key] is None:
+                    computed_secrets[secret.secret_key] = secret.secret_value
+
+        final_secrets: list[Secret] = []
+        for secret_key, secret_value in computed_secrets.items():
+            final_secrets.append(dag.set_secret(secret_key, secret_value))
+
+        return final_secrets
