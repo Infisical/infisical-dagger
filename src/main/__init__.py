@@ -4,6 +4,7 @@ Fetch and work with secrets for your dagger application using Infisical.
 """
 
 import dataclasses
+from functools import cached_property
 from typing import Annotated, Self
 
 from dagger import Doc, dag, function, object_type, Secret
@@ -12,14 +13,18 @@ from infisical_sdk import InfisicalSDKClient
 
 @object_type
 class Infisical:
-    infisical_client: InfisicalSDKClient = dataclasses.field(init=False)
     api_url: Annotated[
-        dataclasses.InitVar[str],
+        str,
         Doc("Your self-hosted Infisical site URL. Default: https://app.infisical.com."),
     ] = "https://app.infisical.com"
+    access_token: Annotated[
+        str,
+        Doc("Your self-hosted Infisical site URL. Default: https://app.infisical.com."),
+    ] = ""
 
-    def __post_init__(self, api_url: str):
-        self.infisical_client = InfisicalSDKClient(host=api_url)
+    @cached_property
+    def infisical_client(self) -> InfisicalSDKClient:
+        return InfisicalSDKClient(host=self.api_url)
 
     @function
     async def with_universal_auth(
@@ -30,9 +35,10 @@ class Infisical:
         """Authenticate with Universal Auth"""
         client_id_dagger_secret = await client_id.plaintext()
         client_secret_dagger_secret = await client_secret.plaintext()
-        self.infisical_client.auth.universal_auth.login(
+        login = self.infisical_client.auth.universal_auth.login(
             client_id_dagger_secret, client_secret_dagger_secret
         )
+        self.access_token = login.access_token
         return self
 
     @function
@@ -54,6 +60,7 @@ class Infisical:
         ] = True,
     ) -> Secret:
         """Get a secret by name"""
+        self.infisical_client.set_token(self.access_token)
         secret = self.infisical_client.secrets.get_secret_by_name(
             secret_name=secret_name,
             project_id=project_id,
@@ -89,6 +96,7 @@ class Infisical:
         tag_filters: list[str] = [],
     ) -> list[Secret]:
         """List secrets"""
+        self.infisical_client.set_token(self.access_token)
         secrets = self.infisical_client.secrets.list_secrets(
             project_id=project_id,
             environment_slug=environment_slug,
