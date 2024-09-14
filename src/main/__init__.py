@@ -3,7 +3,6 @@
 Fetch and work with secrets for your dagger application using Infisical.
 """
 
-import dataclasses
 from functools import cached_property
 from typing import Annotated, Self
 
