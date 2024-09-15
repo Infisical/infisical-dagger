@@ -4,9 +4,9 @@
   "dependencies": [
     {
       "name": "infisical",
-      "source": "github.com/Infisical/infisical-dagger@ac9b8157b2a5b4c0c17ec185e34be02e69c391c3"
+      "source": "../../."
     }
   ],
   "source": ".",
-  "engineVersion": "v0.12.5"
+  "engineVersion": "v0.13.0"
 }
