@@ -1,10 +1,11 @@
 [project]
 name = "main"
-version = "1.0.0"
+version = "1.0.1"
 requires-python = ">= 3.12"
 dependencies = [
     "infisicalsdk >=0.2.0",
     "dagger-io",
+    "certifi>=2026.10.19",
 ]
 
 [build-system]
